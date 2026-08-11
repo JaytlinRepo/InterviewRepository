@@ -50,10 +50,31 @@ I designed, built, and led this project end-to-end — from framing the proactiv
 
 Beyond the code, my focus was translating a reactive operational gap into a repeatable, prevention-first capability: defining success in the analysts' terms, keeping the models explainable, validating performance to 96% accuracy, and designing the system to keep improving through an outcome-driven feedback loop.
 
+## Evaluation
+
+Forward performance is measured with a **walk-forward backtest** ([`evaluation/backtest.py`](evaluation/backtest.py)): the panel is frozen at a cutoff date T, the exact production pipeline scores that snapshot, and every forecast is graded against what actually happened in (T, T+h] — labels that share no window with the features. The cutoff rolls forward and metrics aggregate across runs: per-model and ensemble ROC-AUC, average precision, Brier score, a calibration table, and a naive recency-rule baseline ("predict recurrence iff seen in the last h days") so the modeling lift is visible.
+
+```bash
+python evaluation/backtest.py                  # seeded synthetic cohort (default)
+python evaluation/backtest.py --data-dir DIR   # real daily extracts
+```
+
+The repository runs on a synthetic cohort because the real observation data is sensitive; the 96% figure cited above comes from internal validation against real graded outcomes.
+
+## Limitations & Design Trade-offs
+
+Known and deliberate — stated here rather than discovered later:
+
+- **Training labels overlap the features.** Inside the daily pipeline, `label_7` ("seen in the trailing 7 days") is closely related to `freq_7`. This is intentional for a *ranking snapshot* refit each morning, but it means in-pipeline scores are not forward performance estimates — that's exactly what the walk-forward backtest (forward-looking labels) and the production feedback loop (analyst-graded real outcomes) exist to measure.
+- **In-sample fitting per snapshot.** Models are refit daily on the current snapshot rather than held out; NOI is a prioritization tool, and its precise probabilities are deliberately down-presented into coarse confidence tiers rather than sold as calibrated point estimates.
+- **Hand-set ensemble weights** (0.30/0.25/0.25/0.20). Chosen from qualitative validation; learning them via stacking on graded feedback-loop outcomes is the natural next step.
+- **The 1-day horizon uses 7-day labels as a proxy** for the trained models (no direct 1-day label exists in a snapshot); its ensemble leans on the survival and rate models, which do model that horizon directly.
+
 ## Repository Contents
 
 - [`observationEventForecasting/EDA.ipynb`](observationEventForecasting/EDA.ipynb) — the exploratory analysis that shaped the system: feed-gap and volume checks, activity concentration, recency-vs-return decay, inter-arrival gap and burstiness analysis, calendar effects, and cross-OpDiv overlap. Each section closes with the design decision it motivated; a summary table maps findings to the choices in the modeling notebook.
 - [`observationEventForecasting/NextObservedIndicatorV3.0.ipynb`](observationEventForecasting/NextObservedIndicatorV3.0.ipynb) — the research notebook: data loading, dense panel construction, feature engineering, the four-model ensemble, and the analyst-facing forecast output. Internal file paths are redacted; cell outputs are preserved from the original run.
+- [`evaluation/backtest.py`](evaluation/backtest.py) — walk-forward backtest grading the production pipeline against forward-looking outcomes (see Evaluation above). Loads the model functions directly from the notebook; runs out of the box on a seeded synthetic cohort.
 - [`tests/`](tests) — unit tests validating the model logic and performance. The suite loads the functions directly from the notebook (single source of truth) and verifies feature-engineering correctness, probability validity (bounds, horizon monotonicity), and model performance — each model and the ensemble must rank recurring indicators above dormant ones (AUC ≥ 0.95) on a synthetic cohort with known ground truth. Run with `pip install -r requirements.txt && pytest tests/`.
 
 ---
