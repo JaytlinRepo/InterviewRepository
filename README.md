@@ -61,15 +61,6 @@ python evaluation/backtest.py --data-dir DIR   # real daily extracts
 
 The repository runs on a synthetic cohort because the real observation data is sensitive; the 96% figure cited above comes from internal validation against real graded outcomes.
 
-## Design Decisions
-
-Choices that shaped the system, and the reasoning behind them:
-
-- **Daily-refit ranking architecture.** Models retrain every morning on the freshest snapshot, so rankings adapt immediately when an indicator's behavior shifts — no stale weights, no redeployment lag. Forward accuracy is verified through the dedicated walk-forward backtest and, in production, through the analyst-graded feedback loop, keeping the "how well does it rank today" and "how well does it predict the future" questions cleanly separated and each measured with the right instrument.
-- **Confidence tiers over raw percentages.** Ensemble scores are deliberately presented as coarse, plain-language tiers (*Highly likely / Possibly active / Low confidence*), gated on recent activity. This matches how analysts actually triage and avoids overstating precision — a presentation principle carried directly from stakeholder research.
-- **Horizon-adaptive ensemble composition.** The blend leans on different strengths per window: at the shortest horizon the survival and rate models — which model time-to-event directly — carry the signal, while the trained classifiers dominate the longer windows where labeled history is richest.
-- **Explainability-weighted blend** (0.30/0.25/0.25/0.20). Weights favor the transparent components so any forecast can be defended to leadership in plain terms; they were settled through operational validation. The feedback loop's accumulating graded outcomes are designed to support learned stacking as the system matures — the architecture anticipates its own next upgrade.
-
 ## Repository Contents
 
 - [`observationEventForecasting/EDA.ipynb`](observationEventForecasting/EDA.ipynb) — the exploratory analysis that shaped the system: feed-gap and volume checks, activity concentration, recency-vs-return decay, inter-arrival gap and burstiness analysis, calendar effects, and cross-OpDiv overlap. Each section closes with the design decision it motivated; a summary table maps findings to the choices in the modeling notebook.
