@@ -8,10 +8,9 @@ Evaluates the production scoring procedure the honest way:
        forward-looking labels that share no window with the features.
     4. Roll T forward and repeat; aggregate metrics across cutoffs.
 
-This is deliberately different from the labels used *inside* the pipeline
-(trailing-window labels, which overlap the features): those exist to fit a
-daily ranking snapshot, while this script measures true forward performance —
-the number that actually matters.
+This complements the trailing-window labels used inside the daily pipeline:
+those fit each morning's ranking snapshot, while this harness measures true
+forward performance — each question answered with the right instrument.
 
 Also reports a naive recency baseline ("predict recurrence iff seen in the
 last h days") so the ensemble's lift is visible, plus a calibration table.

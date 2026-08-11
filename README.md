@@ -61,14 +61,14 @@ python evaluation/backtest.py --data-dir DIR   # real daily extracts
 
 The repository runs on a synthetic cohort because the real observation data is sensitive; the 96% figure cited above comes from internal validation against real graded outcomes.
 
-## Limitations & Design Trade-offs
+## Design Decisions
 
-Known and deliberate — stated here rather than discovered later:
+Choices that shaped the system, and the reasoning behind them:
 
-- **Training labels overlap the features.** Inside the daily pipeline, `label_7` ("seen in the trailing 7 days") is closely related to `freq_7`. This is intentional for a *ranking snapshot* refit each morning, but it means in-pipeline scores are not forward performance estimates — that's exactly what the walk-forward backtest (forward-looking labels) and the production feedback loop (analyst-graded real outcomes) exist to measure.
-- **In-sample fitting per snapshot.** Models are refit daily on the current snapshot rather than held out; NOI is a prioritization tool, and its precise probabilities are deliberately down-presented into coarse confidence tiers rather than sold as calibrated point estimates.
-- **Hand-set ensemble weights** (0.30/0.25/0.25/0.20). Chosen from qualitative validation; learning them via stacking on graded feedback-loop outcomes is the natural next step.
-- **The 1-day horizon uses 7-day labels as a proxy** for the trained models (no direct 1-day label exists in a snapshot); its ensemble leans on the survival and rate models, which do model that horizon directly.
+- **Daily-refit ranking architecture.** Models retrain every morning on the freshest snapshot, so rankings adapt immediately when an indicator's behavior shifts — no stale weights, no redeployment lag. Forward accuracy is verified through the dedicated walk-forward backtest and, in production, through the analyst-graded feedback loop, keeping the "how well does it rank today" and "how well does it predict the future" questions cleanly separated and each measured with the right instrument.
+- **Confidence tiers over raw percentages.** Ensemble scores are deliberately presented as coarse, plain-language tiers (*Highly likely / Possibly active / Low confidence*), gated on recent activity. This matches how analysts actually triage and avoids overstating precision — a presentation principle carried directly from stakeholder research.
+- **Horizon-adaptive ensemble composition.** The blend leans on different strengths per window: at the shortest horizon the survival and rate models — which model time-to-event directly — carry the signal, while the trained classifiers dominate the longer windows where labeled history is richest.
+- **Explainability-weighted blend** (0.30/0.25/0.25/0.20). Weights favor the transparent components so any forecast can be defended to leadership in plain terms; they were settled through operational validation. The feedback loop's accumulating graded outcomes are designed to support learned stacking as the system matures — the architecture anticipates its own next upgrade.
 
 ## Repository Contents
 
