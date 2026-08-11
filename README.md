@@ -53,6 +53,7 @@ Beyond the code, my focus was translating a reactive operational gap into a repe
 ## Repository Contents
 
 - [`observationEventForecasting/NextObservedIndicatorV3.0.ipynb`](observationEventForecasting/NextObservedIndicatorV3.0.ipynb) — the research notebook: data loading, dense panel construction, feature engineering, the four-model ensemble, and the analyst-facing forecast output. Internal file paths are redacted; cell outputs are preserved from the original run.
+- [`tests/`](tests) — unit tests validating the model logic and performance. The suite loads the functions directly from the notebook (single source of truth) and verifies feature-engineering correctness, probability validity (bounds, horizon monotonicity), and model performance — each model and the ensemble must rank recurring indicators above dormant ones (AUC ≥ 0.95) on a synthetic cohort with known ground truth. Run with `pip install -r requirements.txt && pytest tests/`.
 
 ---
 
